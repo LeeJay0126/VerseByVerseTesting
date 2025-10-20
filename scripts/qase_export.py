@@ -19,7 +19,8 @@ OUT_JSON= ROOT / "raw"
 OUT_MD.mkdir(parents=True, exist_ok=True)
 OUT_JSON.mkdir(parents=True, exist_ok=True)
 
-HEAD = {"Token": TOKEN, "Accept": "application/json"}  # NOTE: header name is 'Token'
+# IMPORTANT: Qase expects header name 'Token' for auth
+HEAD = {"Token": TOKEN, "Accept": "application/json"}
 
 def slug(s: str) -> str:
     s = re.sub(r"[^A-Za-z0-9._ -]+", "", s or "").strip().replace(" ", "-")
@@ -60,6 +61,41 @@ def norm_tags(raw):
                 out.append(t.get("title") or t.get("name") or t.get("value") or "")
         return [x for x in out if x]
     return [str(raw)]
+
+def render_steps(steps_field):
+    """
+    Qase returns either:
+      - string
+      - list of step objects: { 'action': str, 'expected_result': str, 'data': str, ... }
+    Return a markdown block (string).
+    """
+    if not steps_field:
+        return "—"
+    # If it's already a string
+    if isinstance(steps_field, str):
+        return steps_field.strip() or "—"
+    # If it's a list of steps
+    if isinstance(steps_field, list):
+        lines = []
+        for i, s in enumerate(steps_field, 1):
+            if not isinstance(s, dict):
+                # fallback plain text
+                lines.append(f"{i}. {str(s)}")
+                continue
+            action = (s.get("action") or "").strip()
+            expected = (s.get("expected_result") or "").strip()
+            data = (s.get("data") or "").strip()
+            # Step title line
+            title = action or "(no action provided)"
+            lines.append(f"{i}. {title}")
+            # Optional details indented
+            if expected:
+                lines.append(f"   - Expected: {expected}")
+            if data:
+                lines.append(f"   - Data: {data}")
+        return "\n".join(lines) if lines else "—"
+    # Any other unexpected type
+    return str(steps_field)
 
 # 1) Get all suites
 suites = list(paginate(f"{BASE}/suite/{PROJECT}"))
@@ -107,38 +143,8 @@ for sid, items in sorted(by_suite.items(), key=lambda kv: suite_name.get(kv[0], 
     for c in sorted(items, key=lambda x: x.get("id", 0)):
         cid   = c.get("id", 0)
         title = c.get("title") or ""
-        pre   = (c.get("preconditions") or "").strip()
-        steps = (c.get("steps") or "").strip()
-        exp   = (c.get("expected_result") or "").strip()
-        tags  = ", ".join(norm_tags(c.get("tags"))) or "—"
-
-        lines += [
-            f"### C{cid}: {title}",
-            "",
-            f"- **Priority:** {c.get('priority','')}",
-            f"- **Severity:** {c.get('severity','')}",
-            f"- **Status:** {c.get('status','')}",
-            f"- **Type:** {c.get('type','')}",
-            f"- **Behavior:** {c.get('behavior','')}",
-            f"- **Layer:** {c.get('layer','')}",
-            f"- **Tags:** {tags}",
-            "",
-            "**Preconditions**",
-            "",
-            pre or "—",
-            "",
-            "**Steps**",
-            "",
-            "```\n" + (steps or "—") + "\n```",
-            "",
-            "**Expected result**",
-            "",
-            exp or "—",
-            ""
-        ]
-
-    md_path.write_text("\n".join(lines), encoding="utf-8")
-
-(ROOT / "README.md").write_text("\n".join(index_lines) + "\n", encoding="utf-8")
-
-print(f"OK: Exported {len(suites)} suites and {len(cases)} cases to {ROOT}/")
+        pre   = (c.get("preconditions") or "").strip() if isinstance(c.get("preconditions"), str) else ""
+        steps_md = render_steps(c.get("steps"))
+        exp   = c.get("expected_result")
+        if isinstance(exp, list):
+            # sometimes expected results are split per step; flatten
