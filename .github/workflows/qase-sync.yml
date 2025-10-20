@@ -4,12 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       run_now:
-        description: 'Run immediately'
+        description: 'Bypass 08:00 gate and run immediately'
         required: false
         default: 'false'
-
   schedule:
-    - cron: "0 * * * *"
+    - cron: '0 * * * *'
 
 concurrency:
   group: qase-sync
@@ -23,6 +22,7 @@ jobs:
     env:
       QASE_PROJECT_CODE: VERSEBYVER
       QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
+
     steps:
       - id: now
         name: Determine local time
@@ -42,7 +42,7 @@ jobs:
         if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install deps
         if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
@@ -56,22 +56,32 @@ jobs:
           printf "%s" "$QASE_API_TOKEN" | tr -d '\r\n' > token.txt
           echo "TOKEN_LEN=$(wc -c < token.txt) chars"
 
-      - name: Preflight (token + project on US API)
+      - id: probe
+        name: Preflight (token ➜ user ➜ project)
         if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
-        id: probe
         shell: bash
         run: |
           test -s token.txt || { echo "::error::Missing or empty QASE_API_TOKEN"; exit 2; }
           [ -n "$QASE_PROJECT_CODE" ] || { echo "::error::Missing QASE_PROJECT_CODE"; exit 2; }
           TOKEN=$(cat token.txt)
           BASE="https://api.qase.io/v1"
+
+          # 1) Token validity
+          UHTTP=$(curl -sS -o user.json -w "%{http_code}" -H "Token: ${TOKEN}" "$BASE/user")
+          echo "User probe HTTP=$UHTTP"
+          if [ "$UHTTP" -ne 200 ]; then
+            echo "::error::Token not accepted by Qase (HTTP $UHTTP)."
+            cat user.json || true
+            exit 3
+          fi
+
+          # 2) Project access
           URL="$BASE/case/${QASE_PROJECT_CODE}?limit=1&offset=0"
           echo "Probing $URL"
-          HTTP=$(curl -sS -o resp.json -w "%{http_code}" -H "X-Token: ${TOKEN}" "$URL")
-          echo "HTTP=$HTTP"
-          if [ "$HTTP" -eq 401 ] || [ "$HTTP" -eq 403 ]; then
-            echo "::error::Unauthorized. The token user likely has no access to project '$QASE_PROJECT_CODE', or the project code is incorrect."
-            echo "Tip: create a new token from a user who can open the project in Qase, then update the GitHub secret."
+          HTTP=$(curl -sS -o resp.json -w "%{http_code}" -H "Token: ${TOKEN}" "$URL")
+          echo "Project probe HTTP=$HTTP"
+          if [ "$HTTP" -eq 401 ] || [ "$HTTP" -eq 403 ] ; then
+            echo "::error::Unauthorized/Forbidden for project '$QASE_PROJECT_CODE'."
             cat resp.json || true
             exit 3
           fi
@@ -79,7 +89,7 @@ jobs:
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
 
       - name: Export from Qase
-        if: steps.now.outputs.hour == '08'
+        if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         shell: bash
         env:
           QASE_API_BASE: ${{ steps.probe.outputs.base }}
@@ -89,7 +99,7 @@ jobs:
           python scripts/qase_export.py
 
       - name: Show export tree
-        if: steps.now.outputs.hour == '08'
+        if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         shell: bash
         run: |
           echo "--- qase_export ---"
@@ -98,11 +108,10 @@ jobs:
           git status --porcelain
 
       - name: Commit changes
-        if: steps.now.outputs.hour == '08'
+        if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add qase_export
-          git commit -m "chore(qase): daily sync at 08:00 America/Vancouver" || echo "No changes"
-          git push
+          git commit -m "chore(q
