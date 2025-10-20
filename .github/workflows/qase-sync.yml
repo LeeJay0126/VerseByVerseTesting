@@ -17,6 +17,7 @@ jobs:
     env:
       QASE_PROJECT_CODE: VERSEBYVER
       QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
+
     steps:
       - id: now
         name: Determine local time
@@ -43,18 +44,30 @@ jobs:
         shell: bash
         run: pip install requests
 
-      - name: Preflight
+      - name: Sanitize token
         if: steps.now.outputs.hour == '08'
         shell: bash
         run: |
-          if [ -z "${QASE_API_TOKEN}" ]; then
-            echo "::error::Missing secret QASE_API_TOKEN"; exit 2
+          printf "%s" "$QASE_API_TOKEN" | tr -d '\r\n' > token.txt
+          echo "TOKEN_LEN=$(wc -c < token.txt) chars"
+
+      - name: Preflight: env and API probe
+        if: steps.now.outputs.hour == '08'
+        shell: bash
+        env:
+          QASE_API_BASE: ${{ vars.QASE_API_BASE }}
+        run: |
+          if [ ! -s token.txt ]; then
+            echo "::error::Missing or empty QASE_API_TOKEN"; exit 2
           fi
           if [ -z "${QASE_PROJECT_CODE}" ]; then
-            echo "::error::Missing env QASE_PROJECT_CODE"; exit 2
+            echo "::error::Missing QASE_PROJECT_CODE"; exit 2
           fi
-          URL="https://api.qase.io/v1/case/${QASE_PROJECT_CODE}?limit=1&offset=0"
-          HTTP=$(curl -sS -o resp.json -w "%{http_code}" -H "X-Token: ${QASE_API_TOKEN}" "$URL")
+          BASE="${QASE_API_BASE:-https://api.qase.io/v1}"
+          URL="$BASE/case/${QASE_PROJECT_CODE}?limit=1&offset=0"
+          TOKEN=$(cat token.txt)
+          echo "Probing $URL"
+          HTTP=$(curl -sS -o resp.json -w "%{http_code}" -H "X-Token: ${TOKEN}" "$URL")
           echo "Qase probe HTTP=$HTTP"
           if [ "$HTTP" -ne 200 ]; then
             echo "::error::Qase API returned HTTP $HTTP"
@@ -65,14 +78,19 @@ jobs:
       - name: Export from Qase
         if: steps.now.outputs.hour == '08'
         shell: bash
-        run: python scripts/qase_export.py
+        env:
+          QASE_API_BASE: ${{ vars.QASE_API_BASE }}
+        run: |
+          export QASE_API_BASE="${QASE_API_BASE:-https://api.qase.io/v1}"
+          export QASE_API_TOKEN="$(cat token.txt)"
+          python scripts/qase_export.py
 
       - name: Commit changes
         if: steps.now.outputs.hour == '08'
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add qase_export
-          git commit -m "chore(qase): daily sync at 08:00 America/Vancouver" || echo "No changes"
+          git commit -m 'chore(qase): daily sync at 08:00 America/Vancouver' || echo 'No changes'
           git push
