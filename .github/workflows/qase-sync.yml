@@ -1,0 +1,50 @@
+name: Sync Qase test cases to repo (8am Vancouver)
+
+on:
+  workflow_dispatch:
+  # Run hourly, we'll gate by local time below
+  schedule:
+    - cron: "0 * * * *"
+
+concurrency:
+  group: qase-sync
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      QASE_PROJECT_CODE: VERSEBYVER
+      QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
+    steps:
+      - name: Check local hour in America/Vancouver
+        id: now
+        run: |
+          echo "hour=$(TZ=America/Vancouver date +%H)" >> "$GITHUB_OUTPUT"
+          echo "date=$(TZ=America/Vancouver date -Is)" >> "$GITHUB_OUTPUT"
+      - name: Skip if not 08:00 local
+        if: steps.now.outputs.hour != '08'
+        run: |
+          echo "Local time is ${{ steps.now.outputs.date }} (hour=${{ steps.now.outputs.hour }}) — not 08:00, skipping."
+          exit 0
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install requests
+
+      - name: Export from Qase
+        run: python scripts/qase_export.py
+
+      - name: Commit changes
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add qase_export
+          git commit -m "chore(qase): daily sync at 08:00 America/Vancouver" || echo "No changes"
+          git push
