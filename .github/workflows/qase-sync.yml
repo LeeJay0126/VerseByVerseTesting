@@ -2,8 +2,14 @@ name: Sync Qase test cases to repo (8am Vancouver)
 
 on:
   workflow_dispatch:
+    inputs:
+      run_now:
+        description: 'Bypass 08:00 gate and run immediately'
+        required: false
+        default: 'false'
   schedule:
     - cron: "0 * * * *"
+
 
 concurrency:
   group: qase-sync
