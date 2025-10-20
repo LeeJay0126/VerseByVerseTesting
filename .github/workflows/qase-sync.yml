@@ -111,7 +111,14 @@ jobs:
         if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add qase_export
-          git commit -m "chore(q
+          set -e
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A qase_export
+          if git diff --cached --quiet; then
+            echo 'No changes'
+            exit 0
+          fi
+          git commit -m 'chore(qase): sync export'
+          git push
+
