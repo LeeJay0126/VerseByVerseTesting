@@ -3,7 +3,7 @@ name: Sync Qase test cases to repo (8am Vancouver)
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'
+    - cron: "0 * * * *"
 
 concurrency:
   group: qase-sync
@@ -17,7 +17,6 @@ jobs:
     env:
       QASE_PROJECT_CODE: VERSEBYVER
       QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
-
     steps:
       - id: now
         name: Determine local time
@@ -37,7 +36,7 @@ jobs:
         if: steps.now.outputs.hour == '08'
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install deps
         if: steps.now.outputs.hour == '08'
@@ -51,11 +50,9 @@ jobs:
           printf "%s" "$QASE_API_TOKEN" | tr -d '\r\n' > token.txt
           echo "TOKEN_LEN=$(wc -c < token.txt) chars"
 
-      - name: Preflight: env and API probe
+      - name: Preflight
         if: steps.now.outputs.hour == '08'
         shell: bash
-        env:
-          QASE_API_BASE: ${{ vars.QASE_API_BASE }}
         run: |
           if [ ! -s token.txt ]; then
             echo "::error::Missing or empty QASE_API_TOKEN"; exit 2
@@ -63,34 +60,10 @@ jobs:
           if [ -z "${QASE_PROJECT_CODE}" ]; then
             echo "::error::Missing QASE_PROJECT_CODE"; exit 2
           fi
-          BASE="${QASE_API_BASE:-https://api.qase.io/v1}"
+          BASE="https://api.qase.io/v1"
           URL="$BASE/case/${QASE_PROJECT_CODE}?limit=1&offset=0"
           TOKEN=$(cat token.txt)
           echo "Probing $URL"
           HTTP=$(curl -sS -o resp.json -w "%{http_code}" -H "X-Token: ${TOKEN}" "$URL")
           echo "Qase probe HTTP=$HTTP"
-          if [ "$HTTP" -ne 200 ]; then
-            echo "::error::Qase API returned HTTP $HTTP"
-            cat resp.json
-            exit 3
-          fi
-
-      - name: Export from Qase
-        if: steps.now.outputs.hour == '08'
-        shell: bash
-        env:
-          QASE_API_BASE: ${{ vars.QASE_API_BASE }}
-        run: |
-          export QASE_API_BASE="${QASE_API_BASE:-https://api.qase.io/v1}"
-          export QASE_API_TOKEN="$(cat token.txt)"
-          python scripts/qase_export.py
-
-      - name: Commit changes
-        if: steps.now.outputs.hour == '08'
-        shell: bash
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add qase_export
-          git commit -m 'chore(qase): daily sync at 08:00 America/Vancouver' || echo 'No changes'
-          git push
+          if [ "$HTTP" -ne 200 ]; th
