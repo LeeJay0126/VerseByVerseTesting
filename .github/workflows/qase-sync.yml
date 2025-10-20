@@ -35,22 +35,22 @@ jobs:
           echo "Local time is $DATE"
 
       - name: Checkout
-        if: steps.now.outputs.hour == '08'
+        if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Python
-        if: steps.now.outputs.hour == '08'
+        if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install deps
-        if: steps.now.outputs.hour == '08'
+        if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         shell: bash
         run: pip install requests
 
       - name: Sanitize token
-        if: steps.now.outputs.hour == '08'
+        if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         shell: bash
         run: |
           printf "%s" "$QASE_API_TOKEN" | tr -d '\r\n' > token.txt
@@ -58,7 +58,7 @@ jobs:
 
       - id: probe
         name: Preflight (token, project, auto-detect region)
-        if: steps.now.outputs.hour == '08'
+        if: steps.now.outputs.hour == '08' || github.event.inputs.run_now == 'true'
         shell: bash
         run: |
           test -s token.txt || { echo "::error::Missing or empty QASE_API_TOKEN"; exit 2; }
