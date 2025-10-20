@@ -50,20 +50,48 @@ jobs:
           printf "%s" "$QASE_API_TOKEN" | tr -d '\r\n' > token.txt
           echo "TOKEN_LEN=$(wc -c < token.txt) chars"
 
-      - name: Preflight
+      - id: probe
+        name: Preflight (token, project, auto-detect region)
         if: steps.now.outputs.hour == '08'
         shell: bash
         run: |
-          if [ ! -s token.txt ]; then
-            echo "::error::Missing or empty QASE_API_TOKEN"; exit 2
-          fi
-          if [ -z "${QASE_PROJECT_CODE}" ]; then
-            echo "::error::Missing QASE_PROJECT_CODE"; exit 2
-          fi
+          test -s token.txt || { echo "::error::Missing or empty QASE_API_TOKEN"; exit 2; }
+          [ -n "$QASE_PROJECT_CODE" ] || { echo "::error::Missing QASE_PROJECT_CODE"; exit 2; }
+          TOKEN=$(cat token.txt)
+
           BASE="https://api.qase.io/v1"
           URL="$BASE/case/${QASE_PROJECT_CODE}?limit=1&offset=0"
-          TOKEN=$(cat token.txt)
           echo "Probing $URL"
           HTTP=$(curl -sS -o resp.json -w "%{http_code}" -H "X-Token: ${TOKEN}" "$URL")
-          echo "Qase probe HTTP=$HTTP"
-          if [ "$HTTP" -ne 200 ]; th
+          echo "HTTP=$HTTP"
+
+          if [ "$HTTP" -eq 401 ]; then
+            BASE="https://api.eu.qase.io/v1"
+            URL="$BASE/case/${QASE_PROJECT_CODE}?limit=1&offset=0"
+            echo "Retrying EU $URL"
+            HTTP=$(curl -sS -o resp.json -w "%{http_code}" -H "X-Token: ${TOKEN}" "$URL")
+            echo "EU HTTP=$HTTP"
+          fi
+
+          [ "$HTTP" -eq 200 ] || { echo "::error::Qase API returned HTTP $HTTP"; cat resp.json; exit 3; }
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+
+      - name: Export from Qase
+        if: steps.now.outputs.hour == '08'
+        shell: bash
+        env:
+          QASE_API_BASE: ${{ steps.probe.outputs.base }}
+        run: |
+          export QASE_API_BASE="${QASE_API_BASE:-https://api.qase.io/v1}"
+          export QASE_API_TOKEN="$(cat token.txt)"
+          python scripts/qase_export.py
+
+      - name: Commit changes
+        if: steps.now.outputs.hour == '08'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add qase_export
+          git commit -m "chore(qase): daily sync at 08:00 America/Vancouver" || echo "No changes"
+          git push
