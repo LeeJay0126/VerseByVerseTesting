@@ -22,51 +22,14 @@ jobs:
     steps:
       - name: Determine local time (America/Vancouver)
         id: now
+        shell: bash
         run: |
-          echo "hour=$(TZ=America/Vancouver date +%H)" >> "$GITHUB_OUTPUT"
-          echo "date=$(TZ=America/Vancouver date -Is)" >> "$GITHUB_OUTPUT"
-          echo "Local time is ${{ steps.now.outputs.date }}"
+          HOUR=$(TZ=America/Vancouver date +%H)
+          DATE=$(TZ=America/Vancouver date -Is)
+          echo "hour=$HOUR" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          echo "Local time is $DATE"
 
-      # Everything below only runs at 08
-      - uses: actions/checkout@v4
-        if: steps.now.outputs.hour == '08'
-
-      - uses: actions/setup-python@v5
-        if: steps.now.outputs.hour == '08'
-        with:
-          python-version: "3.11"
-
-      - name: Install deps
-        if: steps.now.outputs.hour == '08'
-        run: pip install requests
-
-      - name: Preflight: env & API probe
-        if: steps.now.outputs.hour == '08'
-        run: |
-          if [ -z "${QASE_API_TOKEN}" ]; then
-            echo "::error::Missing secret QASE_API_TOKEN"; exit 2
-          fi
-          if [ -z "${QASE_PROJECT_CODE}" ]; then
-            echo "::error::Missing env QASE_PROJECT_CODE"; exit 2
-          fi
-          URL="https://api.qase.io/v1/case/${QASE_PROJECT_CODE}?limit=1&offset=0"
-          HTTP=$(curl -sS -o resp.json -w "%{http_code}" -H "X-Token: ${QASE_API_TOKEN}" "$URL")
-          echo "Qase probe HTTP=$HTTP"
-          if [ "$HTTP" -ne 200 ]; then
-            echo "::error::Qase API returned HTTP $HTTP"
-            cat resp.json
-            exit 3
-          fi
-
-      - name: Export from Qase
-        if: steps.now.outputs.hour == '08'
-        run: python scripts/qase_export.py
-
-      - name: Commit changes
-        if: steps.now.outputs.hour == '08'
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add qase_export
-          git commit -m "chore(qase): daily sync at 08:00 America/Vancouver" || echo "No changes"
-          git push
+      # Everything below only runs at 08:00 local time
+      - name: Checkout
+        if:
