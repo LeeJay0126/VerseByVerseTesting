@@ -1,10 +1,13 @@
-name: Sync Qase test cases to repo (approx 8am Vancouver)
+name: Sync Qase test cases to repo (8am Vancouver)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 16 * * *"  # 08:00 during PST (UTC-8)
-    - cron: "0 15 * * *"  # 08:00 during PDT (UTC-7)
+    - cron: '0 * * * *'
+
+concurrency:
+  group: qase-sync
+  cancel-in-progress: false
 
 jobs:
   export:
@@ -15,15 +18,33 @@ jobs:
       QASE_PROJECT_CODE: VERSEBYVER
       QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - id: now
+        name: Determine local time
+        shell: bash
+        run: |
+          HOUR=$(TZ=America/Vancouver date +%H)
+          DATE=$(TZ=America/Vancouver date -Is)
+          echo "hour=$HOUR" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          echo "Local time is $DATE"
 
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        if: steps.now.outputs.hour == '08'
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: steps.now.outputs.hour == '08'
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      - run: pip install requests
+      - name: Install deps
+        if: steps.now.outputs.hour == '08'
+        shell: bash
+        run: pip install requests
 
-      - name: Preflight: env and API probe
+      - name: Preflight
+        if: steps.now.outputs.hour == '08'
         shell: bash
         run: |
           if [ -z "${QASE_API_TOKEN}" ]; then
@@ -42,13 +63,16 @@ jobs:
           fi
 
       - name: Export from Qase
+        if: steps.now.outputs.hour == '08'
+        shell: bash
         run: python scripts/qase_export.py
 
       - name: Commit changes
+        if: steps.now.outputs.hour == '08'
         shell: bash
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add qase_export
-          git commit -m "chore(qase): daily sync around 08:00 America/Vancouver" || echo "No changes"
+          git commit -m "chore(qase): daily sync at 08:00 America/Vancouver" || echo "No changes"
           git push
