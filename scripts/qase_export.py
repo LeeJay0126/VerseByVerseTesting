@@ -2,7 +2,13 @@
 import os, sys, pathlib, requests, re, json
 
 PROJECT = os.environ.get("QASE_PROJECT_CODE", "VERSEBYVER")
-TOKEN   = os.environ.get("QASE_API_TOKEN")
+TOKEN   = os.environ.get("QASE_API_TOKEN", "")
+BASE    = os.environ.get("QASE_API_BASE", "https://api.qase.io/v1")
+
+print(f"[debug] PROJECT={PROJECT}")
+print(f"[debug] QASE_API_BASE={BASE}")
+print(f"[debug] QASE_API_TOKEN length={len(TOKEN)}")
+
 if not TOKEN:
     print("ERROR: QASE_API_TOKEN is not set", file=sys.stderr)
     sys.exit(2)
@@ -13,8 +19,7 @@ OUT_JSON= ROOT / "raw"
 OUT_MD.mkdir(parents=True, exist_ok=True)
 OUT_JSON.mkdir(parents=True, exist_ok=True)
 
-BASE = os.environ.get("QASE_API_BASE", "https://api.qase.io/v1")
-HEAD = {"X-Token": TOKEN, "Accept": "application/json"}
+HEAD = {"Token": TOKEN, "Accept": "application/json"}  # NOTE: header name is 'Token'
 
 def slug(s: str) -> str:
     s = re.sub(r"[^A-Za-z0-9._ -]+", "", s or "").strip().replace(" ", "-")
@@ -49,10 +54,10 @@ def norm_tags(raw):
     if isinstance(raw, list):
         out = []
         for t in raw:
-          if isinstance(t, str):
-            out.append(t)
-          elif isinstance(t, dict):
-            out.append(t.get("title") or t.get("name") or t.get("value") or "")
+            if isinstance(t, str):
+                out.append(t)
+            elif isinstance(t, dict):
+                out.append(t.get("title") or t.get("name") or t.get("value") or "")
         return [x for x in out if x]
     return [str(raw)]
 
