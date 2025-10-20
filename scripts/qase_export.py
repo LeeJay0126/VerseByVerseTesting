@@ -19,7 +19,7 @@ OUT_JSON= ROOT / "raw"
 OUT_MD.mkdir(parents=True, exist_ok=True)
 OUT_JSON.mkdir(parents=True, exist_ok=True)
 
-# IMPORTANT: Qase expects header name 'Token' for auth
+# Qase auth header name is 'Token'
 HEAD = {"Token": TOKEN, "Accept": "application/json"}
 
 def slug(s: str) -> str:
@@ -66,36 +66,42 @@ def render_steps(steps_field):
     """
     Qase returns either:
       - string
-      - list of step objects: { 'action': str, 'expected_result': str, 'data': str, ... }
+      - list of step dicts: { action, expected_result, data, ... }
     Return a markdown block (string).
     """
     if not steps_field:
         return "—"
-    # If it's already a string
     if isinstance(steps_field, str):
         return steps_field.strip() or "—"
-    # If it's a list of steps
     if isinstance(steps_field, list):
         lines = []
         for i, s in enumerate(steps_field, 1):
             if not isinstance(s, dict):
-                # fallback plain text
                 lines.append(f"{i}. {str(s)}")
                 continue
             action = (s.get("action") or "").strip()
             expected = (s.get("expected_result") or "").strip()
             data = (s.get("data") or "").strip()
-            # Step title line
             title = action or "(no action provided)"
             lines.append(f"{i}. {title}")
-            # Optional details indented
             if expected:
                 lines.append(f"   - Expected: {expected}")
             if data:
                 lines.append(f"   - Data: {data}")
         return "\n".join(lines) if lines else "—"
-    # Any other unexpected type
     return str(steps_field)
+
+def as_text(value):
+    """Normalize any JSON field to a clean string (or '—' if empty)."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        return "\n".join(str(x) for x in value if x is not None).strip()
+    if isinstance(value, dict):
+        return json.dumps(value, ensure_ascii=False, indent=2)
+    return str(value).strip()
 
 # 1) Get all suites
 suites = list(paginate(f"{BASE}/suite/{PROJECT}"))
@@ -143,8 +149,45 @@ for sid, items in sorted(by_suite.items(), key=lambda kv: suite_name.get(kv[0], 
     for c in sorted(items, key=lambda x: x.get("id", 0)):
         cid   = c.get("id", 0)
         title = c.get("title") or ""
-        pre   = (c.get("preconditions") or "").strip() if isinstance(c.get("preconditions"), str) else ""
+        pre   = as_text(c.get("preconditions"))
         steps_md = render_steps(c.get("steps"))
-        exp   = c.get("expected_result")
-        if isinstance(exp, list):
-            # sometimes expected results are split per step; flatten
+        exp_field = c.get("expected_result")
+        # Normalize expected_result
+        if isinstance(exp_field, list):
+            exp_text = "\n".join(str(x) for x in exp_field if x is not None).strip()
+        elif isinstance(exp_field, str):
+            exp_text = exp_field.strip()
+        else:
+            exp_text = as_text(exp_field)
+        tags  = ", ".join(norm_tags(c.get("tags"))) or "—"
+
+        lines += [
+            f"### C{cid}: {title}",
+            "",
+            f"- **Priority:** {c.get('priority','')}",
+            f"- **Severity:** {c.get('severity','')}",
+            f"- **Status:** {c.get('status','')}",
+            f"- **Type:** {c.get('type','')}",
+            f"- **Behavior:** {c.get('behavior','')}",
+            f"- **Layer:** {c.get('layer','')}",
+            f"- **Tags:** {tags}",
+            "",
+            "**Preconditions**",
+            "",
+            pre or "—",
+            "",
+            "**Steps**",
+            "",
+            "```\n" + (steps_md or "—") + "\n```",
+            "",
+            "**Expected result**",
+            "",
+            (exp_text or "—"),
+            ""
+        ]
+
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+
+(ROOT / "README.md").write_text("\n".join(index_lines) + "\n", encoding="utf-8")
+
+print(f"OK: Exported {len(suites)} suites and {len(cases)} cases to {ROOT}/")
