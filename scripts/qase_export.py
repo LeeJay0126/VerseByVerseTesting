@@ -13,8 +13,8 @@ OUT_JSON= ROOT / "raw"
 OUT_MD.mkdir(parents=True, exist_ok=True)
 OUT_JSON.mkdir(parents=True, exist_ok=True)
 
-BASE = "https://api.qase.io/v1"
-HEAD = {"X-Token": TOKEN, "Accept": "application/json"}  # Qase API auth
+BASE = os.environ.get("QASE_API_BASE", "https://api.qase.io/v1")
+HEAD = {"X-Token": TOKEN, "Accept": "application/json"}
 
 def slug(s: str) -> str:
     s = re.sub(r"[^A-Za-z0-9._ -]+", "", s or "").strip().replace(" ", "-")
@@ -36,7 +36,6 @@ def paginate(url: str):
     while True:
         data = get_json(url, limit=limit, offset=offset)
         result = data.get("result") or {}
-        # Qase typically uses "entities"; handle "items" just in case
         entities = result.get("entities") or result.get("items") or []
         total = int(result.get("total") or len(entities) or 0)
         for e in entities:
@@ -61,7 +60,7 @@ def norm_tags(raw):
 suites = list(paginate(f"{BASE}/suite/{PROJECT}"))
 suite_name = {s.get("id"): (s.get("title") or f"Suite-{s.get('id')}") for s in suites if s.get("id") is not None}
 
-# 2) Fetch all cases (paginated)
+# 2) Fetch all cases
 cases = list(paginate(f"{BASE}/case/{PROJECT}"))
 
 # 3) Save raw JSON
@@ -93,7 +92,7 @@ for sid, items in sorted(by_suite.items(), key=lambda kv: suite_name.get(kv[0], 
 
     for c in sorted(items, key=lambda x: x.get("id", 0)):
         cid = c.get("id", 0)
-        title = (c.get("title") or "").replace("\n"," ")
+        title = (c.get("title") or "").replace("\n", " ")
         prio  = c.get("priority") or ""
         status= c.get("status") or ""
         lines.append(f"| C{cid} | {title} | {prio} | {status} |")
