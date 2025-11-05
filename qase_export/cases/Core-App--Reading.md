@@ -8,6 +8,7 @@ _Suite ID: 12_
 | C3 | Open version selection modal |  |  |
 | C4 | Open book selection modal |  |  |
 | C5 | Book Chapter verse navigation |  |  |
+| C7 | Display Chapter |  |  |
 
 ## Details
 ### C2: Initial app load
@@ -119,6 +120,31 @@ _Suite ID: 12_
 4. Select John -> 3 -> 16
 5. Verify top display area
    - Expected: Top shows “John 3:16”; the verse is focused and readable.
+```
+
+**Expected result**
+
+—
+
+### C7: Display Chapter
+
+- **Priority:** 0
+- **Severity:** 4
+- **Status:** 0
+- **Type:** 1
+- **Behavior:** 1
+- **Layer:** 0
+- **Tags:** —
+
+**Preconditions**
+
+—
+
+**Steps**
+
+```
+1. Navigate to /study
+2. Click on the
 ```
 
 **Expected result**

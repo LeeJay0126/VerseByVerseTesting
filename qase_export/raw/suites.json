@@ -135,7 +135,7 @@
     "description": "Confirm the app loads, basic navigation works, and a verse renders correctly.",
     "preconditions": null,
     "position": 1,
-    "cases_count": 4,
+    "cases_count": 5,
     "parent_id": 1,
     "created": "2025-10-20 09:37:19",
     "updated": "2025-10-20 09:37:19",

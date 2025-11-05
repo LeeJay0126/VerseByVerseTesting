@@ -242,7 +242,14 @@
         "position": 5,
         "shared_step_hash": null,
         "shared_step_nested_hash": null,
-        "attachments": [],
+        "attachments": [
+          {
+            "size": 27414,
+            "mime": "image/png",
+            "filename": "image.png",
+            "url": "https://d2cxucsjd6xvsd.cloudfront.net/public/team/baa74bd230b5bef106c6bd834fceb57d4d8b2f48/attachment/4e5bc64b58397559ad61b59a438e15927a76722b/image.png"
+          }
+        ],
         "action": "Verify Version Modal components",
         "expected_result": "Version filter input box should be enabled, and list of versions should be categorized by language",
         "data": null,
@@ -256,9 +263,9 @@
     "tags": [],
     "deleted": null,
     "created": "2025-10-21T06:18:38.000000Z",
-    "updated": "2025-10-21T06:18:38.000000Z",
+    "updated": "2025-11-04T17:38:36.000000Z",
     "created_at": "2025-10-21T06:18:38+00:00",
-    "updated_at": "2025-10-21T06:18:38+00:00"
+    "updated_at": "2025-11-04T17:38:36+00:00"
   },
   {
     "id": 4,
@@ -334,7 +341,14 @@
         "position": 5,
         "shared_step_hash": null,
         "shared_step_nested_hash": null,
-        "attachments": [],
+        "attachments": [
+          {
+            "size": 27414,
+            "mime": "image/png",
+            "filename": "image.png",
+            "url": "https://d2cxucsjd6xvsd.cloudfront.net/public/team/baa74bd230b5bef106c6bd834fceb57d4d8b2f48/attachment/4e5bc64b58397559ad61b59a438e15927a76722b/image.png"
+          }
+        ],
         "action": "Verify Book Modal components",
         "expected_result": "Book filter input box should be enabled, and list of books should be in ascending order",
         "data": null,
@@ -518,7 +532,14 @@
         "position": 5,
         "shared_step_hash": null,
         "shared_step_nested_hash": null,
-        "attachments": [],
+        "attachments": [
+          {
+            "size": 27414,
+            "mime": "image/png",
+            "filename": "image.png",
+            "url": "https://d2cxucsjd6xvsd.cloudfront.net/public/team/baa74bd230b5bef106c6bd834fceb57d4d8b2f48/attachment/4e5bc64b58397559ad61b59a438e15927a76722b/image.png"
+          }
+        ],
         "action": "Click on the filter input box",
         "expected_result": null,
         "data": null,
@@ -529,7 +550,14 @@
         "position": 6,
         "shared_step_hash": null,
         "shared_step_nested_hash": null,
-        "attachments": [],
+        "attachments": [
+          {
+            "size": 20817,
+            "mime": "image/png",
+            "filename": "image.png",
+            "url": "https://d2cxucsjd6xvsd.cloudfront.net/public/team/baa74bd230b5bef106c6bd834fceb57d4d8b2f48/attachment/d6ec468626a6322c444f9af2beccf225b9b0affa/image.png"
+          }
+        ],
         "action": "Verify search result for \"KJ\"",
         "expected_result": "Search modal should suggest all search results that include \"KJ\"",
         "data": null,
@@ -540,7 +568,14 @@
         "position": 7,
         "shared_step_hash": null,
         "shared_step_nested_hash": null,
-        "attachments": [],
+        "attachments": [
+          {
+            "size": 22697,
+            "mime": "image/png",
+            "filename": "image.png",
+            "url": "https://d2cxucsjd6xvsd.cloudfront.net/public/team/baa74bd230b5bef106c6bd834fceb57d4d8b2f48/attachment/e11b6af0bc1ac31e7f2992164b59868320efcb0b/image.png"
+          }
+        ],
         "action": "Verify search result for \"KJV\"",
         "expected_result": "Search modal should suggest all search results that include \"KJV\"",
         "data": null,
@@ -562,7 +597,14 @@
         "position": 9,
         "shared_step_hash": null,
         "shared_step_nested_hash": null,
-        "attachments": [],
+        "attachments": [
+          {
+            "size": 17843,
+            "mime": "image/png",
+            "filename": "image.png",
+            "url": "https://d2cxucsjd6xvsd.cloudfront.net/public/team/baa74bd230b5bef106c6bd834fceb57d4d8b2f48/attachment/7ff4c7e61339e2c1a847fc1d2b549ad1e1ab83bd/image.png"
+          }
+        ],
         "action": "Ensure version change upon version selection",
         "expected_result": "Version should change upon version selection",
         "data": null,
@@ -576,8 +618,67 @@
     "tags": [],
     "deleted": null,
     "created": "2025-10-21T06:32:58.000000Z",
-    "updated": "2025-10-21T07:59:33.000000Z",
+    "updated": "2025-11-04T17:43:39.000000Z",
     "created_at": "2025-10-21T06:32:58+00:00",
-    "updated_at": "2025-10-21T07:59:33+00:00"
+    "updated_at": "2025-11-04T17:43:39+00:00"
+  },
+  {
+    "id": 7,
+    "position": 6,
+    "title": "Display Chapter",
+    "description": "To ensure chapter display",
+    "preconditions": null,
+    "postconditions": null,
+    "severity": 4,
+    "priority": 0,
+    "type": 1,
+    "layer": 0,
+    "is_flaky": 0,
+    "is_muted": false,
+    "behavior": 1,
+    "automation": 1,
+    "isManual": true,
+    "isToBeAutomated": true,
+    "status": 0,
+    "milestone_id": null,
+    "suite_id": 12,
+    "links": [],
+    "custom_fields": [],
+    "attachments": [],
+    "steps_type": "classic",
+    "steps": [
+      {
+        "hash": "e3e0ad54c67ea543eae9e6dcc2e62b6da988e4f6",
+        "position": 1,
+        "shared_step_hash": null,
+        "shared_step_nested_hash": null,
+        "attachments": [],
+        "action": "Navigate to /study",
+        "expected_result": null,
+        "data": null,
+        "steps": []
+      },
+      {
+        "hash": "1816aee21756db6ac0594a9b91502b309761b9ef",
+        "position": 2,
+        "shared_step_hash": null,
+        "shared_step_nested_hash": null,
+        "attachments": [],
+        "action": "Click on the",
+        "expected_result": null,
+        "data": null,
+        "steps": []
+      }
+    ],
+    "params": [],
+    "parameters": [],
+    "member_id": 1,
+    "author_id": 334626,
+    "tags": [],
+    "deleted": null,
+    "created": "2025-11-04T17:48:49.000000Z",
+    "updated": "2025-11-04T17:48:49.000000Z",
+    "created_at": "2025-11-04T17:48:49+00:00",
+    "updated_at": "2025-11-04T17:48:49+00:00"
   }
 ]
